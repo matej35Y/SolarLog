@@ -50,11 +50,19 @@ This solution touches on multiple domains: backend development, hardware (IoT) i
 🛠️ Tools and Technologies Used
 
 .Python – main language for logic, calculations, and API
+
 .FastAPI – for creating API endpoints
+
 .SQLite – lightweight database for storing historical data
+
 .BeautifulSoup + Requests – for scraping electricity price data
+
 .HTML + Bootstrap – for frontend structure and styling
+
 .Chart.js – for visualizing energy production and value data
+
 .Tailscale – for peer-to-peer connection to the local machine
+
 .Jinja2 – for rendering HTML templates
+
 .Uvicorn – for running the FastAPI application
