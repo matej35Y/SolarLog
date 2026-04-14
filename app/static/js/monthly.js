@@ -22,6 +22,7 @@ let dailyChart = null;
 
 function loadMonthlyData() {
     const month = document.getElementById('monthSelector').value;
+    const source = document.getElementById('sourceSelector').value;
     const resultsDiv = document.getElementById('results');
     const loadingDiv = document.getElementById('loading');
     const errorDiv = document.getElementById('errorMessage');
@@ -31,8 +32,14 @@ function loadMonthlyData() {
     loadingDiv.classList.remove('d-none');
     errorDiv.classList.add('d-none');
     
+    // Build API URL with optional source parameter
+    let apiUrl = `/api/analysis/by-month/${month}`;
+    if (source) {
+        apiUrl += `?source=${source}`;
+    }
+    
     // Fetch data from API
-    fetch(`/api/analysis/by-month/${month}`)
+    fetch(apiUrl)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(err => {
@@ -63,8 +70,12 @@ function loadMonthlyData() {
             const daysWithData = summary.days_with_data || 0;
             const workingHours = summary.total_working_hours || 0;
             
+            // Determine source display name
+            const sourceDisplay = source ? source.toUpperCase() : 'All Sources';
+            
             // Populate summary data
             document.getElementById('summaryMonth').textContent = `${monthName} ${year}`;
+            document.getElementById('summarySource').textContent = sourceDisplay;
             document.getElementById('summaryValue').textContent = totalValue;
             document.getElementById('summaryEnergy').textContent = totalEnergy;
             document.getElementById('summaryPrice').textContent = avgPrice;

@@ -35,10 +35,16 @@
         <h1 class="mb-4">Monthly Energy Analysis</h1>
         
         <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="col-md-8">
                 <div class="input-group">
                     <span class="input-group-text">Select Month</span>
                     <input type="month" id="monthSelector" class="form-control">
+                    <span class="input-group-text">Price Source</span>
+                    <select id="sourceSelector" class="form-select">
+                        <option value="">All Sources</option>
+                        <option value="hupx" selected>HUPX</option>
+                        <option value="memo">MEMO</option>
+                    </select>
                     <button class="btn btn-primary" id="loadBtn">Load Data</button>
                 </div>
             </div>
@@ -61,6 +67,7 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <p><strong>Month:</strong> <span id="summaryMonth"></span></p>
+                                <p><strong>Price Source:</strong> <span id="summarySource"></span></p>
                                 <p><strong>Days with Data:</strong> <span id="summaryDays"></span></p>
                             </div>
                             <div class="col-md-4">

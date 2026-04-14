@@ -22,6 +22,8 @@ let hourlyChart = null;
 
 function loadDailyData() {
     const date = document.getElementById('dateSelector').value;
+    const source = document.getElementById('sourceSelector').value;
+    
     const resultsDiv = document.getElementById('results');
     const loadingDiv = document.getElementById('loading');
     const errorDiv = document.getElementById('errorMessage');
@@ -31,8 +33,14 @@ function loadDailyData() {
     loadingDiv.classList.remove('d-none');
     errorDiv.classList.add('d-none');
     
+    // Build API URL with optional source parameter
+    let apiUrl = `/api/analysis/by-date/${date}`;
+    if (source) {
+        apiUrl += `?source=${source}`;
+    }
+    
     // Fetch data from API
-    fetch(`/api/analysis/by-date/${date}`)
+    fetch(apiUrl)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(err => {
@@ -42,35 +50,61 @@ function loadDailyData() {
             return response.json();
         })
         .then(data => {
-            // Hide loading indicator
-            loadingDiv.classList.add('d-none');
-            
-            // Populate summary data
-            document.getElementById('summaryDate').textContent = date;
-            document.getElementById('summaryEnergy').textContent = data.summary.total_energy_kwh;
-            document.getElementById('summaryValue').textContent = data.summary.total_value;
-            document.getElementById('summaryPrice').textContent = data.summary.arithmetic_avg_price_per_mwh;
-            
-            // Populate table
-            const tableBody = document.getElementById('dataTable');
-            tableBody.innerHTML = '';
-            
-            data.hourly_data.forEach(hour => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${hour.hour}</td>
-                    <td>${hour.energy_kwh}</td>
-                    <td>${hour.price_per_mwh}</td>
-                    <td>${hour.value}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-            
-            // Create chart
-            createHourlyChart(data.hourly_data);
-            
-            // Show results
-            resultsDiv.classList.remove('d-none');
+            try {
+                // Hide loading indicator
+                loadingDiv.classList.add('d-none');
+                
+                // Check for message field which indicates no data
+                if (data.message && data.hourly_data && data.hourly_data.length === 0) {
+                    errorDiv.textContent = data.message || "No data available for this date";
+                    errorDiv.classList.remove('d-none');
+                    // Still show partial results with empty data
+                    resultsDiv.classList.remove('d-none');
+                    return;
+                }
+                
+                // ONLY populate the elements we know exist
+                document.getElementById('summaryDate').textContent = date;
+                document.getElementById('summaryEnergy').textContent = data.summary.total_energy_kwh;
+                document.getElementById('summaryValue').textContent = data.summary.total_value;
+                document.getElementById('summaryPrice').textContent = data.summary.arithmetic_avg_price_per_mwh;
+                
+                // COMPLETELY SKIP working hours elements, don't even check for them
+                
+                // Show warning if no production
+                const warningElement = document.getElementById('noProductionWarning');
+                if (warningElement) {
+                    if (data.summary.working_hours_count === 0) {
+                        warningElement.classList.remove('d-none');
+                    } else {
+                        warningElement.classList.add('d-none');
+                    }
+                }
+                
+                // Populate hourly table
+                const tableBody = document.getElementById('dataTable');
+                tableBody.innerHTML = '';
+                data.hourly_data.forEach(hour => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${hour.hour}</td>
+                        <td>${hour.energy_kwh}</td>
+                        <td>${hour.price_per_mwh}</td>
+                        <td>${hour.value}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // Create chart
+                createHourlyChart(data.hourly_data);
+                
+                // Show results
+                resultsDiv.classList.remove('d-none');
+            } catch (error) {
+                console.error("Error processing data:", error);
+                errorDiv.textContent = "Error processing data: " + error.message;
+                errorDiv.classList.remove('d-none');
+            }
         })
         .catch(error => {
             loadingDiv.classList.add('d-none');

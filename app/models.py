@@ -11,6 +11,12 @@ class HourlyPrice(Base):
     date = Column(Date, nullable=False)
     hour = Column(String, nullable=False)
     price = Column(Float, nullable=False)
+    source = Column(String, nullable=False, default='hupx')  # 'hupx' or 'memo'
+
+    # Update unique constraint to include source
+    __table_args__ = (
+        UniqueConstraint('date', 'hour', 'source', name='_date_hour_source_uc'),
+    )
 
 class EnergyGeneration(Base):
     __tablename__ = 'energy_generation'
