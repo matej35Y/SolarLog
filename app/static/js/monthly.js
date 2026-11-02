@@ -6,6 +6,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listener to load button
     document.getElementById('loadBtn').addEventListener('click', loadMonthlyData);
+    document.getElementById('prevMonthBtn').addEventListener('click', function() {
+        shiftSelectedMonth(-1);
+    });
+    document.getElementById('nextMonthBtn').addEventListener('click', function() {
+        shiftSelectedMonth(1);
+    });
     
     // Also load data when Enter is pressed in the month input
     monthInput.addEventListener('keyup', function(event) {
@@ -19,6 +25,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 let dailyChart = null;
+
+function shiftSelectedMonth(monthOffset) {
+    const monthInput = document.getElementById('monthSelector');
+    if (!monthInput.value) {
+        return;
+    }
+
+    const [year, month] = monthInput.value.split('-').map(Number);
+    const shiftedMonth = new Date(Date.UTC(year, month - 1 + monthOffset, 1));
+    const shiftedYear = shiftedMonth.getUTCFullYear();
+    const shiftedMonthNumber = String(shiftedMonth.getUTCMonth() + 1).padStart(2, '0');
+    monthInput.value = `${shiftedYear}-${shiftedMonthNumber}`;
+    loadMonthlyData();
+}
 
 function loadMonthlyData() {
     const month = document.getElementById('monthSelector').value;
