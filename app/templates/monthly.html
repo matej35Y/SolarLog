@@ -35,17 +35,29 @@
         <h1 class="mb-4">Monthly Energy Analysis</h1>
         
         <div class="row mb-4">
-            <div class="col-md-8">
-                <div class="input-group">
-                    <span class="input-group-text">Select Month</span>
-                    <input type="month" id="monthSelector" class="form-control">
-                    <span class="input-group-text">Price Source</span>
-                    <select id="sourceSelector" class="form-select">
-                        <option value="">All Sources</option>
-                        <option value="hupx" selected>HUPX</option>
-                        <option value="memo">MEMO</option>
-                    </select>
-                    <button class="btn btn-primary" id="loadBtn">Load Data</button>
+            <div class="col-12">
+                <div class="analysis-filters">
+                    <div class="period-control">
+                        <label for="monthSelector" class="form-label">Select Month</label>
+                        <div class="input-group period-navigation">
+                            <button class="btn btn-outline-primary period-nav-btn" id="prevMonthBtn" type="button" aria-label="Previous month">
+                                <span aria-hidden="true">&larr;</span> Prev
+                            </button>
+                            <input type="month" id="monthSelector" class="form-control">
+                            <button class="btn btn-outline-primary period-nav-btn" id="nextMonthBtn" type="button" aria-label="Next month">
+                                Next <span aria-hidden="true">&rarr;</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="source-control">
+                        <label for="sourceSelector" class="form-label">Price Source</label>
+                        <select id="sourceSelector" class="form-select">
+                            <option value="">All Sources</option>
+                            <option value="hupx" selected>HUPX</option>
+                            <option value="memo">MEMO</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary load-data-btn" id="loadBtn" type="button">Load Data</button>
                 </div>
             </div>
         </div>

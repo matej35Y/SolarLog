@@ -2,10 +2,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set default date to today
     const today = new Date();
     const dateInput = document.getElementById('dateSelector');
-    dateInput.value = today.toISOString().split('T')[0];
+    dateInput.value = formatLocalDate(today);
     
     // Add event listener to load button
     document.getElementById('loadBtn').addEventListener('click', loadDailyData);
+    document.getElementById('prevDateBtn').addEventListener('click', function() {
+        shiftSelectedDate(-1);
+    });
+    document.getElementById('nextDateBtn').addEventListener('click', function() {
+        shiftSelectedDate(1);
+    });
     
     // Also load data when Enter is pressed in the date input
     dateInput.addEventListener('keyup', function(event) {
@@ -19,6 +25,25 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 let hourlyChart = null;
+
+function formatLocalDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function shiftSelectedDate(dayOffset) {
+    const dateInput = document.getElementById('dateSelector');
+    if (!dateInput.value) {
+        return;
+    }
+
+    const [year, month, day] = dateInput.value.split('-').map(Number);
+    const shiftedDate = new Date(Date.UTC(year, month - 1, day + dayOffset));
+    dateInput.value = shiftedDate.toISOString().slice(0, 10);
+    loadDailyData();
+}
 
 function loadDailyData() {
     const date = document.getElementById('dateSelector').value;
