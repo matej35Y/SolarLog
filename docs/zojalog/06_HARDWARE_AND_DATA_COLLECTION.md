@@ -6,7 +6,7 @@
 | | **Bridge** (`scripts/bridge.py`) | **Legacy** (`app/services/solarlog_client.py` + FastAPI loops) |
 |---|---|---|
 | Role | **Production ingester** | Legacy/local; also used by `/api/analysis/by-date` |
-| Runs | Single process on the owner's Mac, launchd | Inside uvicorn (when someone runs it) |
+| Runs | Single process; **observed on the owner's Mac** (launchd or manual — Q-26); intended host = 24/7 Windows PC (ADR-014) | Inside uvicorn (when someone runs it) |
 | Cadence | every 15 min (`CYCLE_MINUTES`) | every `CACHE_TIMEOUT` (3600 s), ×3 loops (R-B1) |
 | Writes | bulk `ON CONFLICT DO UPDATE` via raw SQL (admin key) | `MockSession` inserts (no updates persist; `id` column issue) |
 | Device discovery | candidate list + cache + Tailscale auto-start | `device_ip` + optional Tailscale fallback |

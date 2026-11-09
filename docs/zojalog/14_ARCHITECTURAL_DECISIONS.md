@@ -85,3 +85,16 @@
 - **Decision (owner):** ignore the old SQLite history — no migration, no relabelling, no cleanup; keep project changes minimal; no code yet. Work concentrates on rules for data ingested from now on ([17 §N](17_ONBOARDING_COMPLETION_REPORT.md)).
 - **Consequences:** production is unaffected by the old anomalies; the committed DB stays in git untouched (do not delete); R-D13/R-D14/R-D15 stay in the register as ingestion-guard ideas; reports must not mix pre-2026-04 SQLite figures with production figures.
 - **Evidence:** [V] [16 §11](16_ONBOARDING_VERIFICATION_LEDGER.md); decision from the owner's message.
+
+### ADR-013 — Owner answers of 2026-11-05: what is adopted, what is not
+- **Context:** the owner supplied written answers to the open questions (authored with an AI partner; triaged in [18](18_OWNER_ANSWERS_AND_DECISIONS.md)). Checked against code, logs and the read-only snapshot, several claims conflict with evidence.
+- **Adopted (business rules, no conflict):** revenue stays gross spot valuation (ADR-007); both sources stay active; negative prices stored and shown as real values; a missing price is **no row, never 0**; EUR stored; the **volume-weighted capture price** (Σ revenue ÷ Σ MWh) is the canonical "Average price"; SolarLog cumulative yield is the energy source of truth; the repeated hour of a 25-hour day is stored as `H3B`; a failed scrape never overwrites stored values; legacy FastAPI/debug endpoints and `public_dashboard` are to be retired and PR #1 closed (owner actions — none executed).
+- **Not adopted (conflict or scope):** the ~350 kW capacity ceiling (C-1); `source='memo_fallback'`; `ANOMALY_OVER_CAPACITY` flag and `updated_at` DDL; clamping night energy to 0; the `--dry-run` maintenance step; shared `zojalog_core`; UI/alerting/currency/discount-factor features (Phase 2 in 18 §4).
+- **Consequences:** nothing is implemented until the owner approves a phase; every rule needing a number waits for the nameplate (Q-18); when the capture price, "—" for missing prices or `H3B` reach the UI they must be changed in every duplicated location (CLAUDE.md rule 5).
+- **Evidence:** [V] [18 §1–2](18_OWNER_ANSWERS_AND_DECISIONS.md); decisions come from the owner's answers (not individually re-confirmed).
+
+### ADR-014 — The production bridge belongs on the 24/7 Windows PC; changes must be reversible
+- **Context:** the owner states the project is meant to run on the always-on Windows PC (reached via Tailscale), with the Mac's own Tailscale use not affecting it. Logs show a bridge currently running on the Mac (R-O12).
+- **Decision (owner, 2026-11-05):** runtime host = Windows PC; the Mac must not be required; if a change breaks the previous behaviour it must be restored to how it worked. Approved for implementation: skip complete price scrapes, derive dates from the plant timezone, log-and-skip implausible values.
+- **Consequences:** new code must use only the standard library (no new dependency such as `tzdata`), no Mac-only paths, and must behave identically regardless of the host's timezone; changes are built in a scratch copy and shown as a diff first; the previous `bridge.py` is kept for rollback; exactly one bridge instance should write to InsForge once the Windows copy is verified.
+- **Evidence:** [V] logs (R-O12); decision from the owner's message of 2026-11-05 17:50.

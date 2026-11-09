@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolarLog — Energy Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --raised: #edf0f5;
+      --input-bg: #f0f3f8;
+      --brand: #0aaf72;
+      --brand-dim: #089960;
+      --brand-muted: rgba(10,175,114,0.09);
+      --brand-border: rgba(10,175,114,0.22);
+      --indigo: #6366f1;
+      --amber: #d97706;
+      --ink: #0f1623;
+      --text: #3d4a5c;
+      --muted: #6b7a8d;
+      --faint: #9ba8b8;
+      --line: rgba(0,0,0,0.08);
+      --line-med: rgba(0,0,0,0.12);
+      --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 6px 16px rgba(0,0,0,0.06);
+      --r: 14px;
+      --r-sm: 8px;
+      --r-pill: 9999px;
+    }
+
+    html { font-size: 16px; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: 56px;
+      background: rgba(244,246,249,0.90);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--line);
+      display: flex; align-items: center;
+    }
+    .nav-inner {
+      max-width: 1280px; width: 100%; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; font-weight: 700; color: var(--ink); text-decoration: none; flex-shrink: 0;
+    }
+    .brand-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dim));
+      border-radius: 8px;
+      display: grid; place-items: center;
+      box-shadow: 0 0 12px rgba(10,175,114,0.25);
+    }
+    .nav-sep { width:1px; height:18px; background:var(--line-med); flex-shrink:0; }
+    .nav-tabs { display:flex; gap:2px; flex:1; }
+    .nav-tab {
+      padding: 5px 11px; border-radius: 8px; border: none;
+      background: none; font-family: inherit; font-size: 13.5px; font-weight: 500;
+      color: var(--muted); cursor: pointer; transition: all 0.12s;
+    }
+    .nav-tab:hover { color: var(--ink); background: rgba(0,0,0,0.06); }
+    .nav-tab.active { color: var(--brand); background: var(--brand-muted); font-weight: 600; }
+    .live-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11.5px; font-weight: 600; color: var(--brand);
+      background: var(--brand-muted); border: 1px solid var(--brand-border);
+      padding: 4px 11px; border-radius: var(--r-pill);
+      margin-left: auto; flex-shrink: 0;
+    }
+    .live-pill::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--brand); box-shadow: 0 0 8px var(--brand);
+      animation: blink 2.2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── PAGE ── */
+    .page { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── CONTROLS BAR ── */
+    .controls-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 12px 16px;
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r); margin: 20px 0;
+      box-shadow: var(--shadow);
+    }
+    .ctrl-label {
+      font-size: 10px; font-weight: 600; color: var(--faint);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+    }
+    .ctrl-input {
+      height: 36px; background: var(--input-bg); border: 1px solid var(--line-med);
+      border-radius: var(--r-sm); padding: 0 12px;
+      font-size: 13.5px; font-family: inherit; color: var(--ink);
+      outline: none; transition: border-color 0.15s;
+      color-scheme: light;
+    }
+    .ctrl-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(10,175,114,0.12); }
+    .ctrl-select {
+      height: 36px; background: var(--input-bg); border: 1px solid var(--line-med);
+      border-radius: var(--r-sm); padding: 0 28px 0 12px;
+      font-size: 13.5px; font-family: inherit; color: var(--ink);
+      outline: none; cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%236b7a8d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+      color-scheme: light;
+    }
+    .ctrl-select:focus { border-color: var(--brand); outline: none; }
+    .ctrl-btn {
+      height: 36px; padding: 0 16px; border-radius: var(--r-sm); border: none;
+      background: rgba(0,0,0,0.06); color: var(--text);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: background 0.12s; white-space: nowrap;
+    }
+    .ctrl-btn:hover { background: rgba(0,0,0,0.10); }
+    .ctrl-btn.primary {
+      background: var(--ink); color: var(--bg); font-weight: 600;
+    }
+    .ctrl-btn.primary:hover { opacity: 0.88; }
+    .ctrl-divider { width: 1px; height: 20px; background: var(--line-med); flex-shrink: 0; }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      padding: 32px 0 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+      display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    .page-eyebrow {
+      font-size: 10px; font-weight: 600; color: var(--brand);
+      text-transform: uppercase; letter-spacing: 1px;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex; align-items: center; gap: 6px; margin-bottom: 4px; opacity: 0.85;
+    }
+    .page-title { font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.7px; }
+    .page-sub { font-size: 13.5px; color: var(--muted); margin-top: 3px; }
+
+    /* ── KPI GRID ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px; margin-bottom: 18px;
+    }
+    .kpi {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r); padding: 18px 20px;
+      box-shadow: var(--shadow);
+      display: flex; flex-direction: column; gap: 6px;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s, transform 0.18s;
+    }
+    .kpi::before {
+      content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+      width: 3px; border-radius: 0 2px 2px 0;
+      background: linear-gradient(to bottom, transparent, var(--kpi-color, var(--brand)), transparent);
+    }
+    .kpi::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--kpi-color, var(--brand)), transparent);
+      opacity: 0.35;
+    }
+    .kpi:hover { border-color: var(--line-med); transform: translateY(-2px); }
+    .kpi-top { display: flex; align-items: center; justify-content: space-between; }
+    .kpi-label {
+      font-size: 9.5px; font-weight: 600; color: var(--faint);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .kpi-icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: rgba(0,0,0,0.04); border: 1px solid var(--line);
+      display: grid; place-items: center; color: var(--faint);
+    }
+    .kpi-value {
+      font-size: 26px; font-weight: 700; line-height: 1;
+      letter-spacing: -0.8px; color: var(--ink);
+    }
+    .kpi-unit { font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 3px; }
+    .kpi-sub { font-size: 11.5px; color: var(--muted); }
+
+    /* ── CHART CARD ── */
+    .chart-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r); box-shadow: var(--shadow);
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .chart-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--line);
+      flex-wrap: wrap; gap: 10px;
+      background: rgba(0,0,0,0.015);
+    }
+    .chart-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .chart-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .chart-body { padding: 16px 20px 20px; }
+    .chart-wrap { height: 300px; position: relative; }
+
+    /* ── TABLE CARD ── */
+    .table-card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r); box-shadow: var(--shadow);
+      margin-bottom: 32px; overflow: hidden;
+    }
+    .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.015); flex-wrap: wrap; gap: 8px;
+    }
+    .table-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .table-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th {
+      background: rgba(0,0,0,0.03);
+      color: var(--faint); font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      padding: 10px 20px; text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+    }
+    thead th:last-child { text-align: right; }
+    tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); transition: background 0.1s; }
+    tbody tr:nth-child(even) { background: rgba(0,0,0,0.025); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(10,175,114,0.06); }
+    tbody td { padding: 10px 20px; color: var(--text); vertical-align: middle; }
+    tbody td:last-child { text-align: right; }
+    tfoot td {
+      padding: 11px 20px; font-weight: 600; color: var(--ink);
+      border-top: 1px solid var(--line-med); font-size: 13px;
+    }
+    tfoot td:last-child { text-align: right; }
+    .td-mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink); font-weight: 500; }
+    .td-green { color: var(--brand); font-weight: 700; }
+    .td-muted { color: var(--muted); }
+
+    /* Mini bar */
+    .bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .bar-track { flex: 1; height: 4px; background: rgba(0,0,0,0.08); border-radius: 99px; overflow: hidden; min-width: 50px; }
+    .bar-fill { height: 100%; background: linear-gradient(to right, var(--brand-dim), var(--brand)); border-radius: 99px; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: var(--r-pill);
+      font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge-green { background: var(--brand-muted); color: var(--brand); border: 1px solid var(--brand-border); }
+    .badge-gray  { background: rgba(0,0,0,0.05); color: var(--muted); border: 1px solid var(--line-med); }
+
+    /* ── LOADING / ERROR ── */
+    .state-box {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 60px 20px; gap: 12px;
+      color: var(--muted); font-size: 14px; text-align: center;
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--line-med); border-top-color: var(--brand);
+      border-radius: 50%; animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .err-text { color: #f87171; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--faint); flex-wrap: wrap; gap: 8px;
+    }
+    .footer-left { display: flex; align-items: center; gap: 8px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .page { padding: 0 16px; }
+      .nav-inner { padding: 0 16px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .page-title { font-size: 22px; }
+      .chart-wrap { height: 220px; }
+      .controls-bar { gap: 8px; }
+      thead th:nth-child(3), tbody td:nth-child(3) { display: none; }
+      tbody td, thead th { padding: 10px 14px; }
+      tfoot td { padding: 10px 14px; }
+      .ctrl-input, .ctrl-select { height: 40px; font-size: 16px; }
+    }
+    @media (max-width: 480px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .kpi-value { font-size: 22px; }
+      .nav-tab { font-size: 12.5px; padding: 5px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="brand" href="#">
+      <div class="brand-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06100c" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </div>
+      SolarLog
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-daily" onclick="setView('daily')">Daily</button>
+      <button class="nav-tab" id="tab-monthly" onclick="setView('monthly')">Monthly</button>
+    </div>
+    <div class="live-pill" id="live-pill">Live</div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- CONTROLS -->
+  <div class="controls-bar">
+    <!-- Daily controls -->
+    <div id="daily-controls" style="display:contents">
+      <span class="ctrl-label">Date</span>
+      <input type="date" id="date-picker" class="ctrl-input" />
+      <button class="ctrl-btn" onclick="changeDate(-1)">← Prev</button>
+      <button class="ctrl-btn" onclick="changeDate(1)">Next →</button>
+      <button class="ctrl-btn" onclick="setToday()">Today</button>
+    </div>
+    <!-- Monthly controls -->
+    <div id="monthly-controls" style="display:none;contents:none;gap:10px;align-items:center;">
+      <span class="ctrl-label">Month</span>
+      <input type="month" id="month-picker" class="ctrl-input" />
+    </div>
+    <div class="ctrl-divider"></div>
+    <span class="ctrl-label">Source</span>
+    <select id="source-select" class="ctrl-select" onchange="setSource(this.value)">
+      <option value="hupx" selected>HUPX</option>
+      <option value="memo">MEMO</option>
+    </select>
+    <div class="ctrl-divider"></div>
+    <button class="ctrl-btn primary" onclick="loadData()">↻ Load</button>
+  </div>
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-eyebrow">
+        <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#0aaf72"/></svg>
+        Energy Intelligence
+      </div>
+      <div class="page-title" id="display-title">Loading…</div>
+      <div class="page-sub" id="display-sub"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span class="badge badge-green" id="source-badge">HUPX</span>
+      <span class="badge badge-gray" id="date-badge"></span>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi" style="--kpi-color:#6366f1"><div class="state-box"><div class="spinner"></div></div></div>
+    <div class="kpi" style="--kpi-color:#0aaf72"><div class="state-box"><div class="spinner"></div></div></div>
+    <div class="kpi" style="--kpi-color:#d97706"><div class="state-box"><div class="spinner"></div></div></div>
+    <div class="kpi" style="--kpi-color:#2563eb"><div class="state-box"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title" id="chart-title">Hourly Production &amp; Pricing</div>
+        <div class="chart-sub" id="chart-sub">Energy (kWh) vs spot price (EUR/MWh)</div>
+      </div>
+    </div>
+    <div class="chart-body">
+      <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-header">
+      <div>
+        <div class="table-title" id="table-title">Hourly Breakdown</div>
+        <div class="table-meta" id="table-meta"></div>
+      </div>
+      <span class="badge badge-green" id="table-badge">HUPX</span>
+    </div>
+    <div class="table-wrap" id="table-wrap">
+      <div class="state-box"><div class="spinner"></div><span>Loading…</span></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-left">
+    <span>SolarLog</span>
+    <span style="color:var(--line-med)">·</span>
+    <span>Energy Dashboard</span>
+  </div>
+  <span id="footer-ts" style="font-family:'JetBrains Mono',monospace;"></span>
+</footer>
+
+<script>
+  const BASE = "https://4hj8wryw.eu-central.insforge.app";
+  const KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3OC0xMjM0LTU2NzgtOTBhYi1jZGVmMTIzNDU2NzgiLCJlbWFpbCI6ImFub25AaW5zZm9yZ2UuY29tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTIyODZ9.zrBnhups_5QZm75d5MlVck6D7i6Shdi4DXV0YUDs_e0";
+
+  let currentDate   = new Date().toISOString().split('T')[0];
+  let currentMonth  = new Date().toISOString().slice(0, 7);
+  let currentSource = 'hupx';
+  let currentView   = 'daily';
+  let chartInstance = null;
+
+  const datePicker  = document.getElementById('date-picker');
+  const monthPicker = document.getElementById('month-picker');
+  datePicker.value  = currentDate;
+  monthPicker.value = currentMonth;
+
+  datePicker.addEventListener('change',  e => { currentDate  = e.target.value; loadData(); });
+  monthPicker.addEventListener('change', e => { currentMonth = e.target.value; loadData(); });
+
+  function setView(v) {
+    currentView = v;
+    document.getElementById('tab-daily').className   = 'nav-tab' + (v === 'daily'   ? ' active' : '');
+    document.getElementById('tab-monthly').className = 'nav-tab' + (v === 'monthly' ? ' active' : '');
+
+    const dc = document.getElementById('daily-controls');
+    const mc = document.getElementById('monthly-controls');
+    if (v === 'daily') {
+      dc.style.display = 'contents';
+      mc.style.display = 'none';
+    } else {
+      dc.style.display = 'none';
+      mc.style.display = 'flex';
+      mc.style.gap = '10px';
+      mc.style.alignItems = 'center';
+    }
+    loadData();
+  }
+
+  function changeDate(d) {
+    const dt = new Date(currentDate + 'T12:00:00');
+    dt.setDate(dt.getDate() + d);
+    currentDate = dt.toISOString().split('T')[0];
+    datePicker.value = currentDate;
+    loadData();
+  }
+  function setToday() {
+    currentDate = new Date().toISOString().split('T')[0];
+    datePicker.value = currentDate;
+    loadData();
+  }
+  function setSource(src) {
+    currentSource = src;
+    loadData();
+  }
+
+  function fmt(n, dec = 2) {
+    if (n == null || n === '') return '—';
+    return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+
+  async function api(table, params) {
+    const qs = Object.entries(params).flatMap(([k, v]) =>
+      Array.isArray(v) ? v.map(val => `${k}=${encodeURIComponent(val)}`) : [`${k}=${encodeURIComponent(v)}`]
+    ).join('&');
+    const r = await fetch(`${BASE}/api/database/records/${table}?${qs}`, {
+      headers: { 'Authorization': `Bearer ${KEY}` }
+    });
+    if (!r.ok) throw new Error(`${r.status}`);
+    return r.json();
+  }
+
+  async function loadData() {
+    updateHeader();
+    showLoadingKPIs();
+    showLoadingTable();
+    try {
+      if (currentView === 'daily') await loadDaily();
+      else await loadMonthly();
+      setLive(true);
+    } catch (err) {
+      setLive(false);
+      showError(err.message);
+    }
+    document.getElementById('footer-ts').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+  }
+
+  // ── DAILY ──
+  async function loadDaily() {
+    const [prices, energy] = await Promise.all([
+      api('hourly_prices',   { date: `eq.${currentDate}`, source: `eq.${currentSource}`, order: 'hour.asc', limit: 50 }),
+      api('energy_generation', { date: `eq.${currentDate}`, order: 'hour.asc', limit: 50 })
+    ]);
+    const hourly  = buildHourly(prices, energy);
+    const summary = calcSummary(hourly);
+    renderDailyKPIs(summary);
+    renderDailyChart(hourly);
+    renderDailyTable(hourly, summary);
+  }
+
+  function buildHourly(prices, energy) {
+    const pMap = {}, eMap = {};
+    prices.forEach(p => { pMap[p.hour] = p.price; });
+    energy.forEach(e => { eMap[e.hour] = e.energy_kwh; });
+    return Array.from({length: 24}, (_, i) => {
+      const h = `H${i+1}`;
+      const price = pMap[h] ?? 0, kwh = eMap[h] ?? 0;
+      return { hour: h, price, kwh, revenue: (kwh * price) / 1000 };
+    });
+  }
+
+  function calcSummary(hourly) {
+    let totalKwh = 0, totalRev = 0, priceSum = 0, priceCount = 0, peakPrice = 0, peakKwh = 0, activeHours = 0;
+    hourly.forEach(h => {
+      totalKwh += h.kwh; totalRev += h.revenue;
+      if (h.price > peakPrice) peakPrice = h.price;
+      if (h.kwh > peakKwh) peakKwh = h.kwh;
+      if (h.price > 0) { priceSum += h.price; priceCount++; }
+      if (h.kwh > 0) activeHours++;
+    });
+    return { totalKwh, totalRev, avgPrice: priceCount ? priceSum / priceCount : 0, peakPrice, peakKwh, activeHours };
+  }
+
+  function renderDailyKPIs(s) {
+    document.getElementById('kpi-grid').innerHTML = `
+      <div class="kpi" style="--kpi-color:#6366f1">
+        <div class="kpi-top"><span class="kpi-label">Total Energy</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#6366f1">${fmt(s.totalKwh, 2)}<span class="kpi-unit">kWh</span></div>
+        <div class="kpi-sub">${s.activeHours} active hours</div>
+      </div>
+      <div class="kpi" style="--kpi-color:#0aaf72">
+        <div class="kpi-top"><span class="kpi-label">Total Revenue</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#0aaf72">${fmt(s.totalRev, 2)}<span class="kpi-unit">EUR</span></div>
+        <div class="kpi-sub">Market revenue</div>
+      </div>
+      <div class="kpi" style="--kpi-color:#d97706">
+        <div class="kpi-top"><span class="kpi-label">Avg. Price</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#d97706">${fmt(s.avgPrice, 2)}<span class="kpi-unit">EUR/MWh</span></div>
+        <div class="kpi-sub">Peak: ${fmt(s.peakPrice, 2)} EUR/MWh</div>
+      </div>
+      <div class="kpi" style="--kpi-color:#2563eb">
+        <div class="kpi-top"><span class="kpi-label">Peak Hour</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#2563eb;font-size:22px">${fmt(s.peakKwh, 3)}<span class="kpi-unit">kWh/h</span></div>
+        <div class="kpi-sub">Best production hour</div>
+      </div>
+    `;
+  }
+
+  function renderDailyChart(hourly) {
+    const TICK = { color: '#6b7a8d', font: { family: 'JetBrains Mono, monospace', size: 10 }, padding: 6 };
+    const GRID = { color: 'rgba(0,0,0,0.07)', drawTicks: false };
+    const labels = hourly.map(h => h.hour);
+    const ctx = document.getElementById('main-chart').getContext('2d');
+    const gradE = ctx.createLinearGradient(0, 0, 0, 280);
+    gradE.addColorStop(0, 'rgba(10,175,114,0.22)'); gradE.addColorStop(1, 'rgba(10,175,114,0.00)');
+
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    document.getElementById('chart-title').textContent = 'Hourly Production & Pricing';
+    document.getElementById('chart-sub').textContent   = 'Energy output (kWh) vs spot price (EUR/MWh)';
+
+    chartInstance = new Chart(ctx, {
+      data: {
+        labels,
+        datasets: [
+          { type: 'line', label: 'Energy (kWh)', data: hourly.map(h => h.kwh),
+            borderColor: '#0aaf72', backgroundColor: gradE, fill: true,
+            tension: 0.4, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2, yAxisID: 'yL' },
+          { type: 'line', label: 'Price (EUR/MWh)', data: hourly.map(h => h.price),
+            borderColor: '#6366f1', backgroundColor: 'transparent', fill: false,
+            tension: 0.4, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2, yAxisID: 'yR' }
+        ]
+      },
+      options: chartOpts(TICK, GRID, 'kWh', 'EUR/MWh')
+    });
+  }
+
+  function renderDailyTable(hourly, s) {
+    const maxKwh = Math.max(...hourly.map(h => h.kwh), 0.001);
+    const rows = hourly.map(h => `
+      <tr>
+        <td><span class="td-mono">${h.hour}</span></td>
+        <td>
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill" style="width:${(h.kwh/maxKwh)*100}%"></div></div>
+            <span style="font-size:11px;color:var(--muted);min-width:38px;text-align:right">${fmt(h.kwh,2)}</span>
+          </div>
+        </td>
+        <td class="${h.price > 0 ? '' : 'td-muted'}">${h.price > 0 ? fmt(h.price) : '—'} <span style="font-size:11px;color:var(--faint)">EUR/MWh</span></td>
+        <td class="${h.revenue > 0 ? 'td-green' : 'td-muted'}">${h.revenue > 0 ? fmt(h.revenue, 3) : '—'} <span style="font-size:11px;color:var(--faint);font-weight:400">${h.revenue > 0 ? 'EUR' : ''}</span></td>
+      </tr>`).join('');
+
+    document.getElementById('table-title').textContent = 'Hourly Breakdown';
+    document.getElementById('table-meta').textContent  = `${s.activeHours} active hours`;
+    document.getElementById('table-wrap').innerHTML = `
+      <table>
+        <thead><tr><th>Hour</th><th>Energy</th><th>Price</th><th>Revenue</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td>Total</td><td>${fmt(s.totalKwh, 2)} kWh</td>
+          <td>Ø ${fmt(s.avgPrice)} EUR/MWh</td>
+          <td class="td-green">${fmt(s.totalRev, 3)} EUR</td>
+        </tr></tfoot>
+      </table>`;
+  }
+
+  // ── MONTHLY ──
+  async function loadMonthly() {
+    const [y, m] = currentMonth.split('-').map(Number);
+    const first  = `${currentMonth}-01`;
+    const last   = `${currentMonth}-${String(new Date(y, m, 0).getDate()).padStart(2,'0')}`;
+    const [prices, energy] = await Promise.all([
+      api('hourly_prices',   { date: [`gte.${first}`, `lte.${last}`], source: `eq.${currentSource}`, order: 'date.asc,hour.asc', limit: 1000 }),
+      api('energy_generation', { date: [`gte.${first}`, `lte.${last}`], order: 'date.asc,hour.asc', limit: 1000 })
+    ]);
+    const days    = aggregateMonthly(prices, energy, y, m);
+    const summary = calcMonthlySummary(days);
+    renderMonthlyKPIs(summary);
+    renderMonthlyChart(days);
+    renderMonthlyTable(days, summary);
+  }
+
+  function aggregateMonthly(prices, energy, y, m) {
+    const lastDay = new Date(y, m, 0).getDate();
+    const map = {};
+    for (let i = 1; i <= lastDay; i++) {
+      const d = `${currentMonth}-${String(i).padStart(2,'0')}`;
+      map[d] = { date: d, kwh: 0, revenue: 0, activeHours: 0, priceSum: 0 };
+    }
+    const pByDate = {}, eByDate = {};
+    prices.forEach(p => { (pByDate[p.date] ??= {})[p.hour] = p.price; });
+    energy.forEach(e => { (eByDate[e.date] ??= {})[e.hour] = e.energy_kwh; });
+    Object.keys(map).forEach(d => {
+      const dp = pByDate[d] || {}, de = eByDate[d] || {};
+      for (let i = 1; i <= 24; i++) {
+        const h = `H${i}`, kwh = de[h]||0, price = dp[h]||0;
+        map[d].kwh += kwh;
+        map[d].revenue += (kwh * price) / 1000;
+        if (kwh > 0) { map[d].activeHours++; map[d].priceSum += price; }
+      }
+    });
+    return Object.values(map).sort((a,b) => a.date.localeCompare(b.date));
+  }
+
+  function calcMonthlySummary(days) {
+    let totalKwh=0, totalRev=0, activeDays=0, totalHours=0, totalPriceSum=0;
+    days.forEach(d => {
+      totalKwh += d.kwh; totalRev += d.revenue;
+      if (d.kwh > 0) { activeDays++; totalHours += d.activeHours; totalPriceSum += d.priceSum; }
+    });
+    return { totalKwh, totalRev, activeDays, totalHours,
+      avgPrice:    totalHours  ? totalPriceSum / totalHours : 0,
+      avgDailyRev: activeDays  ? totalRev / activeDays : 0 };
+  }
+
+  function renderMonthlyKPIs(s) {
+    document.getElementById('kpi-grid').innerHTML = `
+      <div class="kpi" style="--kpi-color:#6366f1">
+        <div class="kpi-top"><span class="kpi-label">Total Energy</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#6366f1">${fmt(s.totalKwh/1000,3)}<span class="kpi-unit">MWh</span></div>
+        <div class="kpi-sub">${fmt(s.totalKwh,0)} kWh · ${s.totalHours} hours</div>
+      </div>
+      <div class="kpi" style="--kpi-color:#0aaf72">
+        <div class="kpi-top"><span class="kpi-label">Total Revenue</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#0aaf72">${fmt(s.totalRev,2)}<span class="kpi-unit">EUR</span></div>
+        <div class="kpi-sub">Daily avg: ${fmt(s.avgDailyRev,2)} EUR</div>
+      </div>
+      <div class="kpi" style="--kpi-color:#d97706">
+        <div class="kpi-top"><span class="kpi-label">Avg. Price</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#d97706">${fmt(s.avgPrice,2)}<span class="kpi-unit">EUR/MWh</span></div>
+        <div class="kpi-sub">Weighted working-hour avg</div>
+      </div>
+      <div class="kpi" style="--kpi-color:#2563eb">
+        <div class="kpi-top"><span class="kpi-label">Active Days</span>
+          <span class="kpi-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+        </div>
+        <div class="kpi-value" style="color:#2563eb">${s.activeDays}<span class="kpi-unit">days</span></div>
+        <div class="kpi-sub">Days with production</div>
+      </div>
+    `;
+  }
+
+  function renderMonthlyChart(days) {
+    const TICK = { color: '#6b7a8d', font: { family: 'JetBrains Mono, monospace', size: 10 }, padding: 6 };
+    const GRID = { color: 'rgba(0,0,0,0.07)', drawTicks: false };
+    const labels = days.map(d => d.date.split('-')[2]);
+    const ctx = document.getElementById('main-chart').getContext('2d');
+    const gradV = ctx.createLinearGradient(0,0,0,280);
+    gradV.addColorStop(0,'rgba(10,175,114,0.22)'); gradV.addColorStop(1,'rgba(10,175,114,0.00)');
+
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    document.getElementById('chart-title').textContent = 'Daily Production & Revenue';
+    document.getElementById('chart-sub').textContent   = 'Energy (kWh) and market value (EUR) per day';
+
+    chartInstance = new Chart(ctx, {
+      data: {
+        labels,
+        datasets: [
+          { type: 'bar', label: 'Energy (kWh)', data: days.map(d => d.kwh),
+            backgroundColor: 'rgba(99,102,241,0.20)', borderColor: '#6366f1',
+            borderWidth: 1.5, borderRadius: 4, yAxisID: 'yL' },
+          { type: 'line', label: 'Revenue (EUR)', data: days.map(d => d.revenue),
+            borderColor: '#0aaf72', backgroundColor: gradV, fill: true,
+            tension: 0.35, pointRadius: 3, pointHoverRadius: 5, borderWidth: 2, yAxisID: 'yR' }
+        ]
+      },
+      options: chartOpts(TICK, GRID, 'kWh', 'EUR')
+    });
+  }
+
+  function renderMonthlyTable(days, s) {
+    const active = days.filter(d => d.kwh > 0);
+    const rows = active.map(d => `
+      <tr>
+        <td><span class="td-mono">${d.date}</span></td>
+        <td>${fmt(d.kwh, 2)} <span style="font-size:11px;color:var(--faint)">kWh</span></td>
+        <td>${d.activeHours > 0 ? fmt(d.priceSum/d.activeHours,2) : '—'} <span style="font-size:11px;color:var(--faint)">EUR/MWh</span></td>
+        <td class="td-green">${fmt(d.revenue,2)} <span style="font-size:11px;color:var(--faint);font-weight:400">EUR</span></td>
+      </tr>`).join('');
+
+    document.getElementById('table-title').textContent = 'Daily Values';
+    document.getElementById('table-meta').textContent  = `${active.length} days with production`;
+    document.getElementById('table-wrap').innerHTML = `
+      <table>
+        <thead><tr><th>Date</th><th>Energy</th><th>Avg Price</th><th>Revenue</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td>Monthly Total</td>
+          <td>${fmt(s.totalKwh/1000,3)} MWh</td>
+          <td>Ø ${fmt(s.avgPrice,2)} EUR/MWh</td>
+          <td class="td-green">${fmt(s.totalRev,2)} EUR</td>
+        </tr></tfoot>
+      </table>`;
+  }
+
+  // ── Shared chart options ──
+  function chartOpts(TICK, GRID, leftLabel, rightLabel) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#ffffff', titleColor: '#0f1623', bodyColor: '#3d4a5c',
+          borderColor: 'rgba(0,0,0,0.10)', borderWidth: 1,
+          padding: { top:10, right:14, bottom:10, left:14 }, cornerRadius: 10,
+          titleFont: { family: 'JetBrains Mono, monospace', size: 11, weight: '600' },
+          bodyFont: { family: 'Inter, system-ui', size: 12 },
+          callbacks: { label: ctx => `  ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` }
+        }
+      },
+      scales: {
+        x: { grid: GRID, border: { display: false }, ticks: TICK },
+        yL: { position: 'left', beginAtZero: true, grid: GRID, border: { display: false },
+          title: { display: true, text: leftLabel,  color: '#6b7a8d', font: { size: 10, family: 'JetBrains Mono, monospace' } },
+          ticks: TICK },
+        yR: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false, drawTicks: false }, border: { display: false },
+          title: { display: true, text: rightLabel, color: '#6b7a8d', font: { size: 10, family: 'JetBrains Mono, monospace' } },
+          ticks: TICK }
+      },
+      animation: { duration: 500, easing: 'easeOutCubic' }
+    };
+  }
+
+  // ── Helpers ──
+  function updateHeader() {
+    const src = currentSource.toUpperCase();
+    document.getElementById('source-badge').textContent = src;
+    document.getElementById('table-badge').textContent  = src;
+    if (currentView === 'daily') {
+      const d = new Date(currentDate + 'T12:00:00');
+      document.getElementById('display-title').textContent = d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+      document.getElementById('display-sub').textContent   = `${src} market prices`;
+      document.getElementById('date-badge').textContent    = currentDate;
+    } else {
+      const [y, m] = currentMonth.split('-').map(Number);
+      const mn = new Date(y, m-1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      document.getElementById('display-title').textContent = mn + ' Overview';
+      document.getElementById('display-sub').textContent   = `${src} market data · aggregated daily totals`;
+      document.getElementById('date-badge').textContent    = currentMonth;
+    }
+  }
+
+  function showLoadingKPIs() {
+    document.getElementById('kpi-grid').innerHTML = Array(4).fill(
+      `<div class="kpi"><div class="state-box"><div class="spinner"></div></div></div>`
+    ).join('');
+  }
+
+  function showLoadingTable() {
+    document.getElementById('table-wrap').innerHTML =
+      `<div class="state-box"><div class="spinner"></div><span>Loading…</span></div>`;
+  }
+
+  function showError(msg) {
+    const e = `<div class="state-box err-text">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <strong>Failed to load</strong><span style="font-size:13px;color:var(--muted)">${msg}</span></div>`;
+    document.getElementById('kpi-grid').innerHTML =
+      `<div class="kpi" style="grid-column:1/-1">${e}</div>`;
+    document.getElementById('table-wrap').innerHTML = e;
+  }
+
+  function setLive(ok) {
+    const p = document.getElementById('live-pill');
+    p.textContent = ok ? '' : 'Error';
+    if (ok) {
+      p.innerHTML = 'Live';
+      p.style.color = 'var(--brand)';
+    } else {
+      p.style.color = '#f87171';
+    }
+  }
+
+  // ── Start ──
+  document.getElementById('footer-ts').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+  loadData();
+</script>
+</body>
+</html>

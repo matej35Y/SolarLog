@@ -1,191 +1,299 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Set default month to current month
-    const today = new Date();
-    const monthInput = document.getElementById('monthSelector');
-    monthInput.value = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
-    
-    // Add event listener to load button
-    document.getElementById('loadBtn').addEventListener('click', loadMonthlyData);
-    
-    // Also load data when Enter is pressed in the month input
-    monthInput.addEventListener('keyup', function(event) {
-        if (event.key === 'Enter') {
-            loadMonthlyData();
-        }
-    });
-    
-    // Load current month's data on page load
-    loadMonthlyData();
-});
+/* ================================================================
+   monthly.js — SolarLog Premium Dashboard
+   Area/Bar/Line chart toggle · Gradient fills · Rich table
+   ================================================================ */
+
+'use strict';
 
 let dailyChart = null;
+let currentChartType = 'area';
+let lastDailyData = null;
 
-function loadMonthlyData() {
-    const month = document.getElementById('monthSelector').value;
-    const source = document.getElementById('sourceSelector').value;
-    const resultsDiv = document.getElementById('results');
-    const loadingDiv = document.getElementById('loading');
-    const errorDiv = document.getElementById('errorMessage');
-    
-    // Show loading indicator
-    resultsDiv.classList.add('d-none');
-    loadingDiv.classList.remove('d-none');
-    errorDiv.classList.add('d-none');
-    
-    // Build API URL with optional source parameter
-    let apiUrl = `/api/analysis/by-month/${month}`;
-    if (source) {
-        apiUrl += `?source=${source}`;
-    }
-    
-    // Fetch data from API
-    fetch(apiUrl)
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.detail || err.message || 'Failed to load data');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Hide loading indicator
-            loadingDiv.classList.add('d-none');
-            
-            // Check if we have data or just a status message
-            if (data.status === 'no_data') {
-                throw new Error(data.message);
-            }
-            
-            // Format month name for display
-            const [year, monthNum] = month.split('-');
-            const monthDate = new Date(year, parseInt(monthNum) - 1, 1);
-            const monthName = monthDate.toLocaleString('default', { month: 'long' });
-            
-            // Get summary data
-            const summary = data.month_summary || {};
-            const totalValue = summary.total_value || 0;
-            const totalEnergy = summary.total_energy_mwh || 0;
-            const avgPrice = summary.avg_working_hour_price || 0;
-            const daysWithData = summary.days_with_data || 0;
-            const workingHours = summary.total_working_hours || 0;
-            
-            // Determine source display name
-            const sourceDisplay = source ? source.toUpperCase() : 'All Sources';
-            
-            // Populate summary data
-            document.getElementById('summaryMonth').textContent = `${monthName} ${year}`;
-            document.getElementById('summarySource').textContent = sourceDisplay;
-            document.getElementById('summaryValue').textContent = totalValue;
-            document.getElementById('summaryEnergy').textContent = totalEnergy;
-            document.getElementById('summaryPrice').textContent = avgPrice;
-            document.getElementById('summaryDays').textContent = daysWithData;
-            document.getElementById('summaryHours').textContent = workingHours;
-            
-            // Prepare data for chart and table
-            const dailyData = Object.entries(data)
-                .filter(([key]) => key !== 'month_summary')
-                .map(([date, info]) => ({
-                    date: date,
-                    value: info.total_value,
-                    energy: info.total_energy_mwh,
-                    price: info.avg_working_hour_price,
-                    hours: info.working_hours
-                }))
-                .sort((a, b) => a.date.localeCompare(b.date));
-            
-            // Populate table
-            const tableBody = document.getElementById('dataTable');
-            tableBody.innerHTML = '';
-            
-            dailyData.forEach(day => {
-                const row = document.createElement('tr');
-                const formattedDate = new Date(day.date).toLocaleDateString();
-                row.innerHTML = `
-                    <td>${formattedDate}</td>
-                    <td>${day.energy} MWh</td>
-                    <td>${day.price} EUR/MWh</td>
-                    <td>${day.value} EUR</td>
-                    <td><a href="/ui/daily?date=${day.date}" class="btn btn-sm btn-outline-primary">View Details</a></td>
-                `;
-                tableBody.appendChild(row);
-            });
-            
-            // Create chart
-            createDailyChart(dailyData);
-            
-            // Show results
-            resultsDiv.classList.remove('d-none');
-        })
-        .catch(error => {
-            loadingDiv.classList.add('d-none');
-            errorDiv.textContent = error.message;
-            errorDiv.classList.remove('d-none');
-        });
+// ── Helpers ──────────────────────────────────────────────
+function show(id) { document.getElementById(id)?.classList.remove('sl-hidden'); }
+function hide(id) { document.getElementById(id)?.classList.add('sl-hidden'); }
+
+function fmt(n, decimals = 2) {
+  if (n == null || n === '') return '—';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-function createDailyChart(dailyData) {
-    const ctx = document.getElementById('dailyChart').getContext('2d');
-    
-    // Prepare data for chart
-    const dates = dailyData.map(item => new Date(item.date).toLocaleDateString());
-    const values = dailyData.map(item => item.value);
-    const energyData = dailyData.map(item => item.energy);
-    
-    // Destroy previous chart if it exists
-    if (dailyChart) {
-        dailyChart.destroy();
-    }
-    
-    // Create new chart
-    dailyChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: dates,
-            datasets: [
-                {
-                    label: 'Daily Value (EUR)',
-                    data: values,
-                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Energy Production (MWh)',
-                    data: energyData,
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1,
-                    type: 'line',
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Value (EUR)'
-                    }
-                },
-                y1: {
-                    beginAtZero: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Energy (MWh)'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    }
-                }
-            }
-        }
+function fmtShortDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+// ── Init ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const monthInput = document.getElementById('monthSelector');
+  const today = new Date();
+  monthInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+  document.getElementById('loadBtn').addEventListener('click', loadMonthlyData);
+  monthInput.addEventListener('keyup', e => { if (e.key === 'Enter') loadMonthlyData(); });
+
+  // Chart toggle
+  document.querySelectorAll('.chart-toggle__btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.chart-toggle__btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentChartType = btn.dataset.type;
+      if (lastDailyData) buildChart(lastDailyData, currentChartType);
     });
-} 
+  });
+
+  document.getElementById('sourceSelector').addEventListener('change', syncBadges);
+
+  loadMonthlyData();
+});
+
+// ── Badge sync ────────────────────────────────────────────
+function syncBadges() {
+  const source = document.getElementById('sourceSelector').value;
+  const label = source ? source.toUpperCase() : 'ALL';
+
+  ['tableSourceBadge', 'headerSource'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = label;
+    el.className = source === 'memo' ? 'sl-badge sl-badge--gray' : 'sl-badge sl-badge--green';
+  });
+
+  const srcEl = document.getElementById('summarySource');
+  if (srcEl) srcEl.textContent = label;
+}
+
+// ── Load ──────────────────────────────────────────────────
+function loadMonthlyData() {
+  const month = document.getElementById('monthSelector').value;
+  const source = document.getElementById('sourceSelector').value;
+  if (!month) return;
+
+  hide('results'); show('loading'); hide('errorMessage');
+
+  // Update header month badge
+  const headerMonth = document.getElementById('headerMonth');
+  if (headerMonth) headerMonth.textContent = month;
+
+  let url = `/api/analysis/by-month/${month}`;
+  if (source) url += `?source=${source}`;
+
+  fetch(url)
+    .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || e.message || 'Load failed'); }))
+    .then(data => {
+      hide('loading');
+
+      if (data.status === 'no_data') throw new Error(data.message);
+
+      const [year, monthNum] = month.split('-');
+      const monthName = new Date(year, parseInt(monthNum) - 1, 1)
+        .toLocaleString('default', { month: 'long' });
+
+      populateKPIs(data, monthName, year);
+      const dailyData = buildDailyData(data);
+      populateTable(dailyData);
+      lastDailyData = dailyData;
+      buildChart(dailyData, currentChartType);
+      syncBadges();
+
+      // Update chart subtitle
+      const chartLabel = document.getElementById('chartMonthLabel');
+      if (chartLabel) chartLabel.textContent = `${monthName} ${year} · Energy (MWh) & revenue (EUR) per day`;
+
+      show('results');
+    })
+    .catch(err => {
+      hide('loading');
+      const errEl = document.getElementById('errorMessage');
+      errEl.innerHTML = `<span>⚠️</span> ${err.message}`;
+      show('errorMessage');
+    });
+}
+
+// ── KPI ───────────────────────────────────────────────────
+function populateKPIs(data, monthName, year) {
+  const s = data.month_summary || {};
+
+  document.getElementById('summaryMonth').textContent = `${monthName} ${year}`;
+  document.getElementById('summaryEnergy').textContent = fmt(s.total_energy_mwh, 3);
+  document.getElementById('summaryValue').textContent = fmt(s.total_value);
+  document.getElementById('summaryPrice').textContent = fmt(s.avg_working_hour_price);
+  document.getElementById('summaryDays').textContent = s.days_with_data ?? '—';
+  document.getElementById('summaryHours').textContent = s.total_working_hours ?? '—';
+
+  // Daily avg
+  const dailyAvgEl = document.getElementById('summaryDailyAvg');
+  if (dailyAvgEl && s.days_with_data && s.total_value) {
+    dailyAvgEl.textContent = fmt(s.total_value / s.days_with_data);
+  }
+}
+
+// ── Build daily array ─────────────────────────────────────
+function buildDailyData(data) {
+  return Object.entries(data)
+    .filter(([k]) => k !== 'month_summary')
+    .map(([date, info]) => ({
+      date,
+      value: parseFloat(info.total_value) || 0,
+      energy: parseFloat(info.total_energy_mwh) || 0,
+      price: parseFloat(info.avg_working_hour_price) || 0,
+      hours: info.working_hours || 0,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ── Table ─────────────────────────────────────────────────
+function populateTable(dailyData) {
+  const tbody = document.getElementById('dataTable');
+  tbody.innerHTML = '';
+
+  const maxEnergy = Math.max(...dailyData.map(d => d.energy), 1);
+
+  dailyData.forEach(day => {
+    const pct = Math.round((day.energy / maxEnergy) * 100);
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => {
+      window.location.href = `/ui/daily?date=${day.date}`;
+    });
+
+    tr.innerHTML = `
+      <td><span class="td-mono">${fmtShortDate(day.date)}</span></td>
+      <td><span class="td-energy">${fmt(day.energy, 3)}</span> <span style="font-size:11px;color:var(--text-faint)">MWh</span></td>
+      <td>
+        <div class="td-bar-wrap">
+          <div class="td-bar"><div class="td-bar__fill" style="width:${pct}%"></div></div>
+          <span style="font-size:11px;color:var(--text-muted);min-width:28px;text-align:right">${pct}%</span>
+        </div>
+      </td>
+      <td>${fmt(day.price)} <span style="font-size:11px;color:var(--text-faint)">EUR/MWh</span></td>
+      <td><span class="td-value">${fmt(day.value)}</span> <span style="font-size:11px;color:var(--text-faint)">EUR</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Chart ─────────────────────────────────────────────────
+function buildChart(dailyData, type = 'area') {
+  const ctx = document.getElementById('dailyChart');
+  const labels = dailyData.map(d => new Date(d.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+  const values = dailyData.map(d => d.value);
+  const energy = dailyData.map(d => d.energy);
+
+  if (dailyChart) { dailyChart.destroy(); dailyChart = null; }
+
+  const isFilled = type !== 'line';
+  const chartType = type === 'area' ? 'line' : type;
+
+  const gradValue = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+  gradValue.addColorStop(0, 'rgba(24,226,153,0.30)');
+  gradValue.addColorStop(1, 'rgba(24,226,153,0.00)');
+
+  const gradEnergy = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+  gradEnergy.addColorStop(0, 'rgba(99,102,241,0.18)');
+  gradEnergy.addColorStop(1, 'rgba(99,102,241,0.00)');
+
+  const TICK = { color: '#4d5870', font: { family: 'JetBrains Mono, monospace', size: 10 }, padding: 8 };
+  const GRID = { color: 'rgba(255,255,255,0.055)', drawTicks: false };
+
+  dailyChart = new Chart(ctx, {
+    type: chartType,
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Revenue (EUR)',
+          data: values,
+          borderColor: '#18E299',
+          backgroundColor: isFilled ? gradValue : 'rgba(24,226,153,0.65)',
+          pointBackgroundColor: '#18E299',
+          pointBorderColor: 'transparent',
+          fill: isFilled,
+          yAxisID: 'y',
+          order: 1,
+          tension: 0.4,
+          pointRadius: type === 'line' ? 4 : 2,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          borderRadius: type === 'bar' ? 5 : 0,
+        },
+        {
+          label: 'Energy (MWh)',
+          data: energy,
+          type: 'line',
+          borderColor: '#818cf8',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: '#818cf8',
+          pointBorderColor: 'transparent',
+          fill: false,
+          yAxisID: 'y1',
+          order: 0,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            boxWidth: 10, boxHeight: 10,
+            borderRadius: 3, useBorderRadius: true,
+            padding: 16,
+            font: { family: 'Inter, system-ui', size: 12, weight: '500' },
+            color: '#7d8ba0',
+          }
+        },
+        tooltip: {
+          backgroundColor: '#0f0f1a',
+          titleColor: '#edf0f7',
+          bodyColor: '#c4cdd8',
+          borderColor: 'rgba(255,255,255,0.10)',
+          borderWidth: 1,
+          padding: { top: 10, right: 14, bottom: 10, left: 14 },
+          cornerRadius: 10,
+          caretSize: 5,
+          titleFont: { family: 'JetBrains Mono, monospace', size: 11, weight: '600' },
+          bodyFont: { family: 'Inter, system-ui', size: 12 },
+          callbacks: {
+            label: item => {
+              const unit = item.datasetIndex === 0 ? ' EUR' : ' MWh';
+              return `  ${item.dataset.label}: ${fmt(item.raw)}${unit}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: GRID,
+          border: { display: false },
+          ticks: { ...TICK, maxTicksLimit: 16 }
+        },
+        y: {
+          position: 'left',
+          beginAtZero: true,
+          grid: GRID,
+          border: { display: false },
+          title: { display: true, text: 'EUR', color: '#4d5870', font: { size: 10, family: 'JetBrains Mono, monospace' } },
+          ticks: TICK,
+        },
+        y1: {
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false, drawTicks: false },
+          border: { display: false },
+          title: { display: true, text: 'MWh', color: '#4d5870', font: { size: 10, family: 'JetBrains Mono, monospace' } },
+          ticks: TICK,
+        }
+      },
+      animation: { duration: 550, easing: 'easeOutCubic' }
+    }
+  });
+}

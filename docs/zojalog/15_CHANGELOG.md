@@ -3,6 +3,12 @@
 Add an entry here when a **significant project-level change** is completed or when documentation errors are corrected. Newest first. Dates are absolute.
 
 ## A. Documentation changelog
+### 2026-11-05 (fifth pass, 17:50 addendum) — owner follow-up
+Docs edited: `CLAUDE.md` and `06` (bridge host wording), `13` (R-O12; Q-18/19/22/24/25 annotated; Q-26…Q-28), `14` (ADR-014), `18` (§6), `15`. Facts from the owner: inverter page = 13 inverters, 585 kWp DC; MEMO is the primary source; the InsForge key was reset on 11-02 without updating the static-PC copy; the Mac is abroad (UTC+2); intended host = 24/7 Windows PC. Checked: MEMO returned 24 rows for 2026-10-25 and HUPX failed on `'3B'` every cycle that day; `service.sh` log path points at a stale folder. No code, DB or git state changed.
+
+### 2026-11-05 (fifth pass) — owner answers triaged against evidence
+Docs edited: new `18_OWNER_ANSWERS_AND_DECISIONS.md`; `13` (R-D18, R-D19, R-O9, R-O10, R-O11; Q-02/04/05/07/08/10/11/12/13/15/17 annotated; Q-18…Q-25 added); `14` (ADR-013); `PROJECT_CONTEXT_INDEX.md`; `15`. Facts: peak hourly 546.4 kWh and 22 % of producing hours above 357 kWh (the answers' 350 kW ceiling would flag them); `bridge.py` has no `--dry-run`; prices are re-scraped every cycle (≈ 52 requests/day/source, not < 10); the Mac clock (now UTC+2) and the logger clock (CET) differ, mislabelling data for one hour each night (R-O9); bridge uptime 29 %; 401 burst began mid-run on 2026-11-02 00:32; HUPX still returns 24 hourly records. Still unverified: live schema/RLS/grants, plist, nameplate, benchmark, coverage 2026-08-28→09-17. The uploaded answers file sits untracked in `docs/zojalog/` and contains hostnames/IPs — must not be committed. No code, DB or git state changed; edits are uncommitted.
+
 ### 2026-11-03 (fourth pass, 23:11) — live InsForge results and scope decision
 Docs edited: `CLAUDE.md` (rule 7), `04`, `05`, `13` (R-D3/R-D13/R-D14/R-D15/R-O7, Q-01/Q-06/Q-14), `14` (ADR-012), `16` (§11), `17` (§N and updates), `PROJECT_CONTEXT_INDEX.md`, `15`. Facts: production starts 2026-04-01; no `H0`, no spikes (max 546.4 kWh), no `-9999`; HUPX 2026-10-25 absent (confirmed). Owner decisions: ignore old SQLite history, no migration, minimal changes, no code yet. Schema/RLS/grants still unverified. No code, DB or git state changed.
 

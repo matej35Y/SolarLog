@@ -1,122 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Analysis - Energy Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Analysis — SolarLog</title>
+  <meta name="description" content="Hourly solar energy production, market pricing, and revenue analysis.">
+  <link href="/static/css/styles.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/ui">Energy Analysis</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/ui">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/ui/daily">Daily Analysis</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/ui/monthly">Monthly Analysis</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <div class="container mt-4">
-        <h1 class="mb-4">Daily Energy Analysis</h1>
-        
-        <div class="row mb-4">
-            <div class="col-md-8">
-                <div class="input-group">
-                    <span class="input-group-text">Select Date</span>
-                    <input type="date" id="dateSelector" class="form-control">
-                    <span class="input-group-text">Price Source</span>
-                    <select id="sourceSelector" class="form-select">
-                        <option value="">All Sources</option>
-                        <option value="hupx" selected>HUPX</option>
-                        <option value="memo">MEMO</option>
-                    </select>
-                    <button class="btn btn-primary" id="loadBtn">Load Data</button>
-                </div>
-            </div>
+  <!-- Nav -->
+  <nav class="sl-nav" role="navigation" aria-label="Main navigation">
+    <div class="sl-nav__inner">
+      <a class="sl-nav__brand" href="/ui">
+        <span class="sl-nav__logo">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" color="#06100c"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </span>
+        SolarLog
+      </a>
+      <span class="sl-nav__sep" aria-hidden="true"></span>
+      <ul class="sl-nav__links" id="navLinks">
+        <li><a class="sl-nav__link" href="/ui">Overview</a></li>
+        <li><a class="sl-nav__link active" href="/ui/daily">Daily</a></li>
+        <li><a class="sl-nav__link" href="/ui/monthly">Monthly</a></li>
+      </ul>
+      <div class="sl-nav__right">
+        <span class="sl-nav__pill">Live</span>
+      </div>
+      <button class="sl-nav__toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
+    </div>
+  </nav>
+
+  <main class="sl-page">
+
+    <!-- Page header -->
+    <header class="sl-dash-header">
+      <div class="sl-dash-header__left">
+        <div class="sl-dash-header__eyebrow">
+          <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#18E299"/></svg>
+          Energy Intelligence
         </div>
-        
-        <div id="loading" class="text-center d-none">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p>Loading data...</p>
-        </div>
-        
-        <div id="errorMessage" class="alert alert-danger d-none"></div>
-        
-        <div id="results" class="d-none">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="summary-box">
-                        <h3>Daily Summary</h3>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <p><strong>Date:</strong> <span id="summaryDate"></span></p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Total Energy:</strong> <span id="summaryEnergy"></span> kWh</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Total Value:</strong> <span class="value-highlight" id="summaryValue"></span> EUR</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Avg. Price:</strong> <span id="summaryPrice"></span> EUR/MWh</p>
-                                <div id="noProductionWarning" class="alert alert-warning mt-2 d-none">
-                                    No energy production on this date
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="chart-container">
-                        <canvas id="hourlyChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-12">
-                    <h3>Hourly Data</h3>
-                    <div class="table-responsive data-table">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Hour</th>
-                                    <th>Energy (kWh)</th>
-                                    <th>Price (EUR/MWh)</th>
-                                    <th>Value (EUR)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dataTable">
-                                <!-- Data will be inserted here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <h1>Daily Analysis</h1>
+        <p class="sl-dash-header__sub">Hourly production, market pricing &amp; revenue</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span class="sl-badge sl-badge--green" id="headerSource">HUPX</span>
+        <span class="sl-badge sl-badge--gray" id="headerDate" style="font-family:'JetBrains Mono',monospace;"></span>
+      </div>
+    </header>
+
+    <!-- Controls -->
+    <div class="sl-controls" role="search" aria-label="Data filters">
+      <div class="sl-controls__group">
+        <span class="sl-controls__label">Date</span>
+        <input type="date" id="dateSelector" class="sl-input" aria-label="Select date">
+      </div>
+      <span class="sl-controls__divider" aria-hidden="true"></span>
+      <div class="sl-controls__group">
+        <span class="sl-controls__label">Source</span>
+        <select id="sourceSelector" class="sl-select" aria-label="Price source">
+          <option value="">All</option>
+          <option value="hupx" selected>HUPX</option>
+          <option value="memo">MEMO</option>
+        </select>
+      </div>
+      <span class="sl-controls__divider" aria-hidden="true"></span>
+      <button class="btn-primary btn-sm" id="loadBtn" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+        Load
+      </button>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', path='/js/daily.js') }}"></script>
+    <!-- Loading -->
+    <div id="loading" class="sl-loading sl-hidden" aria-live="polite">
+      <div class="sl-spinner"></div>
+      <span>Fetching production data…</span>
+    </div>
+
+    <!-- Error -->
+    <div id="errorMessage" class="sl-alert sl-alert--error sl-hidden" role="alert"></div>
+
+    <!-- Results -->
+    <div id="results" class="sl-hidden">
+
+      <!-- KPI Cards -->
+      <div class="sl-kpi-grid" aria-label="Daily summary">
+
+        <div class="sl-kpi sl-kpi--indigo animate-up">
+          <div class="sl-kpi__top">
+            <span class="sl-kpi__label">Total Energy</span>
+            <span class="sl-kpi__icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+          </div>
+          <div class="sl-kpi__value indigo">
+            <span id="summaryEnergy">—</span><span class="sl-kpi__unit">kWh</span>
+          </div>
+          <div class="sl-kpi__sub" id="kpiEnergyHours">— active hours</div>
+        </div>
+
+        <div class="sl-kpi sl-kpi--green animate-up">
+          <div class="sl-kpi__top">
+            <span class="sl-kpi__label">Total Revenue</span>
+            <span class="sl-kpi__icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+          </div>
+          <div class="sl-kpi__value green">
+            <span id="summaryValue">—</span><span class="sl-kpi__unit">EUR</span>
+          </div>
+          <div class="sl-kpi__sub">Market revenue</div>
+        </div>
+
+        <div class="sl-kpi sl-kpi--amber animate-up">
+          <div class="sl-kpi__top">
+            <span class="sl-kpi__label">Avg. Price</span>
+            <span class="sl-kpi__icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+            </span>
+          </div>
+          <div class="sl-kpi__value amber">
+            <span id="summaryPrice">—</span><span class="sl-kpi__unit">EUR/MWh</span>
+          </div>
+          <div class="sl-kpi__sub">Weighted spot price</div>
+        </div>
+
+        <div class="sl-kpi sl-kpi--green animate-up">
+          <div class="sl-kpi__top">
+            <span class="sl-kpi__label">Date</span>
+            <span class="sl-kpi__icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+          </div>
+          <div class="sl-kpi__value" id="summaryDate" style="font-size:17px;letter-spacing:-0.3px;">—</div>
+          <div class="sl-kpi__sub">Selected day</div>
+        </div>
+
+      </div>
+
+      <!-- No production warning -->
+      <div id="noProductionWarning" class="sl-alert sl-alert--warning sl-hidden" role="status">
+        No energy production recorded on this date.
+      </div>
+
+      <!-- Chart -->
+      <div class="sl-chart-card animate-up">
+        <div class="sl-chart-card__header">
+          <div>
+            <div class="sl-chart-card__title">Hourly Production &amp; Pricing</div>
+            <div class="sl-chart-card__sub" id="chartSubtitle">Energy output (kWh) vs spot price (EUR/MWh)</div>
+          </div>
+          <div class="sl-chart-card__controls">
+            <div class="chart-toggle" role="group" aria-label="Chart type">
+              <button class="chart-toggle__btn active" data-type="area">Area</button>
+              <button class="chart-toggle__btn" data-type="bar">Bar</button>
+              <button class="chart-toggle__btn" data-type="line">Line</button>
+            </div>
+          </div>
+        </div>
+        <div class="sl-chart-card__body">
+          <div class="sl-chart-canvas-wrap">
+            <canvas id="hourlyChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="sl-table-card animate-up">
+        <div class="sl-table-card__header">
+          <div>
+            <div class="sl-table-card__title">Hourly Breakdown</div>
+            <div class="sl-table-card__meta"><span id="activeHoursLabel">—</span> active hours</div>
+          </div>
+          <span class="sl-badge sl-badge--green" id="tableBadge">HUPX</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="sl-table" aria-label="Hourly energy data">
+            <thead>
+              <tr>
+                <th scope="col">Hour</th>
+                <th scope="col">Energy</th>
+                <th scope="col">Production</th>
+                <th scope="col">Price</th>
+                <th scope="col">Revenue</th>
+              </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="sl-footer">
+    <div class="sl-footer__left">
+      <span>SolarLog</span>
+      <span style="color:var(--line-med)">·</span>
+      <span>Daily Analysis</span>
+    </div>
+    <span id="footerTs" style="font-family:'JetBrains Mono',monospace;font-size:11px;"></span>
+  </footer>
+
+  <script src="/static/js/daily.js"></script>
+  <script>
+    const toggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      const open = navLinks.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.textContent = open ? '✕' : '☰';
+    });
+    document.getElementById('footerTs').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+  </script>
 </body>
-</html> 
+</html>

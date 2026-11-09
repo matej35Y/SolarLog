@@ -29,6 +29,7 @@
 | [15 Changelog](15_CHANGELOG.md) | doc corrections, project timeline |
 | [16 Verification ledger](16_ONBOARDING_VERIFICATION_LEDGER.md) | **evidence log**: what was checked against which source, GitHub-vs-working-tree differences, data-integrity findings with queries, review of the 3 legacy docs |
 | [17 Completion report](17_ONBOARDING_COMPLETION_REPORT.md) | onboarding report: product, architecture, data flow, design, business logic, readiness, unknowns |
+| [18 Owner answers & decisions](18_OWNER_ANSWERS_AND_DECISIONS.md) | the owner's 2026-11-05 answers triaged against evidence: contradictions, new findings (R-O9…), per-answer status, phased plan (not approved) |
 
 ### Quick routing for common tasks
 | Task | Go to |
@@ -42,6 +43,7 @@
 | Is X safe to run? | `CLAUDE.md` rule 3, [12 §2](12_TESTING_AND_VALIDATION.md) |
 | "Which tree / branch / snapshot is authoritative?" | [16 §3](16_ONBOARDING_VERIFICATION_LEDGER.md), R-O1/R-O7/R-O8 in [13](13_KNOWN_LIMITATIONS_AND_RISKS.md) |
 | Historical data looks wrong (hours shifted, spikes, junk prices) | R-D13…R-D15 in [13](13_KNOWN_LIMITATIONS_AND_RISKS.md), [16 §5](16_ONBOARDING_VERIFICATION_LEDGER.md) |
+| "What did the owner decide for ingestion rules, and what is still open?" | [18](18_OWNER_ANSWERS_AND_DECISIONS.md), ADR-013 in [14](14_ARCHITECTURAL_DECISIONS.md), Q-18…Q-25 in [13](13_KNOWN_LIMITATIONS_AND_RISKS.md) |
 
 ---
 ## Topic index (34 topics)

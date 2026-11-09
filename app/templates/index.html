@@ -1,65 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Energy Analysis Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolarLog — Solar Energy Dashboard</title>
+  <meta name="description" content="Real-time solar production tracking, HUPX & MEMO pricing, and financial analysis.">
+  <link href="/static/css/styles.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/ui">Energy Analysis</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/ui">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/ui/daily">Daily Analysis</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/ui/monthly">Monthly Analysis</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-md-12 text-center">
-                <h1>Energy Production Analysis</h1>
-                <p class="lead">View your energy production data and financial analysis</p>
-            </div>
-        </div>
-
-        <div class="row mt-5">
-            <div class="col-md-6">
-                <div class="card shadow">
-                    <div class="card-body text-center">
-                        <h3>Daily Analysis</h3>
-                        <p>View detailed hourly production and value for a specific day</p>
-                        <a href="/ui/daily" class="btn btn-primary">View Daily Analysis</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card shadow">
-                    <div class="card-body text-center">
-                        <h3>Monthly Analysis</h3>
-                        <p>View total production value for each day in a month</p>
-                        <a href="/ui/monthly" class="btn btn-primary">View Monthly Analysis</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- Nav -->
+  <nav class="sl-nav" role="navigation" aria-label="Main navigation">
+    <div class="sl-nav__inner">
+      <a class="sl-nav__brand" href="/ui" id="nav-brand">
+        <span class="sl-nav__logo">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" color="#06100c"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </span>
+        SolarLog
+      </a>
+      <span class="sl-nav__sep" aria-hidden="true"></span>
+      <ul class="sl-nav__links" id="navLinks">
+        <li><a class="sl-nav__link active" href="/ui" id="nav-home">Overview</a></li>
+        <li><a class="sl-nav__link" href="/ui/daily" id="nav-daily">Daily</a></li>
+        <li><a class="sl-nav__link" href="/ui/monthly" id="nav-monthly">Monthly</a></li>
+      </ul>
+      <div class="sl-nav__right">
+        <span class="sl-nav__pill">Live</span>
+      </div>
+      <button class="sl-nav__toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
     </div>
+  </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <main class="sl-page">
+
+    <!-- Hero -->
+    <section class="sl-hero" aria-labelledby="hero-title">
+      <div class="sl-hero__glow" aria-hidden="true"></div>
+
+      <div class="sl-hero__content animate-up">
+        <div class="sl-hero__eyebrow">
+          <svg width="8" height="8" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#18E299" opacity="0.3"/><circle cx="5" cy="5" r="2" fill="#18E299"/></svg>
+          Solar Energy Intelligence
+        </div>
+        <h1 class="sl-hero__title" id="hero-title">
+          Your energy,<br>
+          <span class="accent">precisely understood</span>
+        </h1>
+        <p class="sl-hero__sub">
+          Real-time production tracking, HUPX &amp; MEMO market pricing, and financial analysis — all in one clean dashboard.
+        </p>
+        <div class="sl-hero__ctas">
+          <a href="/ui/daily" class="btn-primary" id="hero-cta-daily">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            Daily Analysis
+          </a>
+          <a href="/ui/monthly" class="btn-ghost" id="hero-cta-monthly">Monthly Overview</a>
+        </div>
+      </div>
+
+      <!-- Live stats strip -->
+      <div class="sl-hero__strip animate-up" id="heroStrip">
+        <div class="sl-hero__strip-item">
+          <div class="sl-hero__strip-label">Today's Energy</div>
+          <div class="sl-hero__strip-val" id="strip-energy">—<span class="sl-hero__strip-unit">kWh</span></div>
+        </div>
+        <div class="sl-hero__strip-item">
+          <div class="sl-hero__strip-label">Today's Revenue</div>
+          <div class="sl-hero__strip-val green" id="strip-value">—<span class="sl-hero__strip-unit">EUR</span></div>
+        </div>
+        <div class="sl-hero__strip-item">
+          <div class="sl-hero__strip-label">Avg. Price</div>
+          <div class="sl-hero__strip-val" id="strip-price">—<span class="sl-hero__strip-unit">EUR/MWh</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature cards -->
+    <section class="sl-features" aria-labelledby="features-title">
+      <div class="sl-features__label">Explore</div>
+      <h2 class="sl-features__title" id="features-title">Everything in one place</h2>
+      <p class="sl-features__sub">Choose a view to start analysing your system's performance.</p>
+
+      <div class="sl-feature-grid">
+
+        <a class="sl-feature-card animate-up" href="/ui/daily" id="card-daily">
+          <div class="sl-feature-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          </div>
+          <div class="sl-feature-card__title">Daily Analysis</div>
+          <div class="sl-feature-card__desc">
+            Hour-by-hour production breakdowns. See how much your system generated each hour, the spot price at that moment, and the exact EUR revenue it produced.
+          </div>
+          <div class="sl-feature-card__arrow">View daily <span>→</span></div>
+        </a>
+
+        <a class="sl-feature-card animate-up" href="/ui/monthly" id="card-monthly">
+          <div class="sl-feature-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="sl-feature-card__title">Monthly Overview</div>
+          <div class="sl-feature-card__desc">
+            Bird's-eye view of any month. Compare daily production totals, track cumulative value, and spot performance trends across weeks.
+          </div>
+          <div class="sl-feature-card__arrow">View monthly <span>→</span></div>
+        </a>
+
+        <div class="sl-feature-card animate-up" id="card-sources" style="cursor:default;">
+          <div class="sl-feature-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="sl-feature-card__title">Dual Price Sources</div>
+          <div class="sl-feature-card__desc">
+            Switch between HUPX and MEMO market benchmarks to compare revenue scenarios against different contract pricing indices.
+          </div>
+          <div style="display:flex;gap:6px;margin-top:auto;">
+            <span class="sl-badge sl-badge--green">HUPX</span>
+            <span class="sl-badge sl-badge--gray">MEMO</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="sl-footer">
+    <div class="sl-footer__left">
+      <span>SolarLog</span>
+      <span style="color:var(--line-med)">·</span>
+      <span>Energy Dashboard</span>
+    </div>
+    <span id="footerDate" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);"></span>
+  </footer>
+
+  <script>
+    // Mobile nav
+    const toggle = document.getElementById('navToggle');
+    const links  = document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      const open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.textContent = open ? '✕' : '☰';
+    });
+
+    // Footer date
+    document.getElementById('footerDate').textContent =
+      new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Load today's hero stats
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`/api/analysis/by-date/${today}?source=hupx`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.summary) return;
+        const s = data.summary;
+        const fmt = v => v != null ? Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+        document.getElementById('strip-energy').innerHTML =
+          `${fmt(s.total_energy_kwh)}<span class="sl-hero__strip-unit">kWh</span>`;
+        document.getElementById('strip-value').innerHTML =
+          `${fmt(s.total_value)}<span class="sl-hero__strip-unit">EUR</span>`;
+        document.getElementById('strip-price').innerHTML =
+          `${fmt(s.arithmetic_avg_price_per_mwh)}<span class="sl-hero__strip-unit">EUR/MWh</span>`;
+      })
+      .catch(() => {});
+  </script>
 </body>
-</html> 
+</html>

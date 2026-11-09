@@ -10,10 +10,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .scraper_factory import ScraperFactory
-from .config import settings
-from .models import HourlyPrice, session, EnergyGeneration
-from .energy_service import EnergyDataService
+from app.services.scraper_factory import ScraperFactory
+from app.core.config import settings
+from app.models.database import HourlyPrice, session, EnergyGeneration
+from app.services.solarlog_client import EnergyDataService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -182,7 +182,7 @@ async def get_prices_by_date(date: str, source: Optional[str] = None):
             try:
                 # Use the appropriate scraper based on source
                 if source:
-                    from .scraper_factory import ScraperFactory
+                    from app.services.scraper_factory import ScraperFactory
                     source_scraper = ScraperFactory.get_scraper(source)
                     scraped_data = source_scraper.scrape_prices(target_date=date)
                 else:
@@ -486,7 +486,7 @@ async def get_price_energy_analysis(date: str, source: Optional[str] = None):
             try:
                 # Use the appropriate scraper based on source
                 if source:
-                    from .scraper_factory import ScraperFactory
+                    from app.services.scraper_factory import ScraperFactory
                     source_scraper = ScraperFactory.get_scraper(source)
                     scraped_data = source_scraper.scrape_prices(target_date=date)
                 else:

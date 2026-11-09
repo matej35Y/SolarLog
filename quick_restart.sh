@@ -2,4 +2,4 @@
 # Quick scraper restart - just run: ./quick_restart.sh
 
 echo "🔄 Quick Scraper Restart..."
-python3 restart_scraper.py
+python3 scripts/restart_scraper.py

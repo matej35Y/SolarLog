@@ -1,0 +1,23 @@
+*.db
+*.sqlite
+*.log
+.env*
+!.env.example
+.DS_Store
+.idea/
+__pycache__/
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf
